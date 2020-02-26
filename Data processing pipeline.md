@@ -59,7 +59,7 @@ for filenames in ${file}
 done
 ```
 
-### 04. Mapping: STAR
+### 04. Mapping: [STAR](https://www.bioinfo-scrounger.com/archives/288/)
 
 ```sh
 #!/bin/bash
