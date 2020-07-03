@@ -1,4 +1,4 @@
-# **Data processing pipeline**
+# **RNA different expression**
 
 ### 01. Raw data
 
@@ -81,7 +81,7 @@ do
 done
 ```
 
-###  05. Featurecount:  FeatureCounts
+###  05. Featurecount:  [FeatureCounts](http://bioinf.wehi.edu.au/featureCounts/)
 
 ```sh
 #!/bin/bash
@@ -130,7 +130,7 @@ rm ${output}/*.tmp.txt
 
 ### 07. Different gene expression in R
 
-+ DESeq
++ [DESeq](http://www.bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html)
 
 ```R
 ##载入DESeq2
@@ -267,7 +267,8 @@ pdf
 > dev.off()
 ```
 
-<div align=left><img src="C:\Users\Tao\Desktop\data processing\heatmap.png" style="zoom:40%;" /><div>
+<div align=left><img src="C:\Users\Tao\Documents\GitHub\data processing\heatmap.png" style="zoom:40%;" /><div>
+
 
 + TranscriptID > name change by biomaRt in R
 
@@ -288,13 +289,74 @@ head(temp1)
 write.csv(temp1,"converted.csv")
 ```
 
-<div align=left><img src="C:\Users\Tao\Desktop\data processing\transcriptID to annotation.png" style="zoom:40%;" /><div>
+<div align=left><img src="C:\Users\Tao\Documents\GitHub\data processing\transcriptID to annotation.png" style="zoom:40%;" /><div>
+
 
 > 在PPT中将heatmap 和 gene name list拼接
 
 
 
-### 08. GO & KEGG analysis 
+### 08. Sample Correlation
+
+```R
+> install.packages("pheatmap")
+> stad_raw=read.csv("C:/Users/Tao/Desktop/rawcounts.csv",header=T,row.names=1)
+> head(stad_raw)
+                 NC NC.1 STAD STAD.1
+ENST00000456328 182  104    6      1
+ENST00000450305   0    0    0      0
+ENST00000488147   2   18    0      2
+ENST00000619216   0    2    0      0
+ENST00000473358   0    0    0      0
+ENST00000469289   0    0    0      0
+> cor_stad_raw_matrix=cor(stad_raw)
+> head(cor_stad_raw_matrix)
+              NC      NC.1      STAD    STAD.1
+NC     1.0000000 0.9792599 0.2784779 0.2655405
+NC.1   0.9792599 1.0000000 0.2169506 0.2109196
+STAD   0.2784779 0.2169506 1.0000000 0.9769124
+STAD.1 0.2655405 0.2109196 0.9769124 1.0000000
+> write.csv(cor_stad_raw_matrix,'cor_stad_raw_matrix.csv')
+> pheatmap(cor_stad_raw_matrix,cluster_rows=F,cluster_cols=F,display_numbers=T)
+```
+
+
+
+ <img src="C:\Users\Tao\Documents\GitHub\data processing\cor_raw.png" alt="cor_rawcounts" style="zoom:70%;" /><img src="C:\Users\Tao\Documents\GitHub\data processing\cor_normalizedbyDESeq.png" alt="cor_normalizedbyDEseq" style="zoom:70%;" />
+
+### 09. Volcano plot
+
+```R
+diffgene <- read.table("/home/test/share/RNAseq_homework/gene_exp_homework.diff",header=T,sep="\t")
+
+
+diffgene$threshold <- as.factor(ifelse(diffgene$q_value < 0.05 & abs(diffgene$log2.fold_change.) >=1,ifelse(diffgene$log2.fold_change. > 1 ,'Up','Down'),'Not'))
+volcanoplot_gene <- ggplot(data=diffgene, aes(x=log2.fold_change., y =-log10(q_value), color=threshold,fill=threshold,label=gene)) +
+  scale_color_manual(values=c("blue", "grey","red"))+
+  geom_point(size=1) +
+  xlim(c(-3, 3)) +
+  theme_bw(base_size = 12, base_family = "Times") +
+  geom_vline(xintercept=c(-1,1),lty=4,col="grey",lwd=0.6)+
+  geom_hline(yintercept = -log10(0.05),lty=4,col="grey",lwd=0.6)+
+  theme(legend.position="right",
+  panel.grid=element_blank(),
+        legend.title = element_blank(),
+        legend.text= element_text(face="bold", color="black",family = "Times", size=8),
+        plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(face="bold", color="black", size=12),
+        axis.text.y = element_text(face="bold",  color="black", size=12),
+        axis.title.x = element_text(face="bold", color="black", size=12),
+        axis.title.y = element_text(face="bold",color="black", size=12))+
+  labs(x="log2(fold_change)",y="-log10 (q_value)",title="Volcano plot of different expression gene(geneID)", face="bold")
+
+volcanoplot_label_gene <- volcanoplot_gene + geom_text_repel(force=0.01,nudge_y=0.05) + labs(title = "Volcanoe plot of DEG(gene)")
+
+ggsave("/home/test/share/RNAseq_homework/volcano_plot_tyh_genelabe_repel.pdf", plot=volcanoplot_gene, height = 10, width = 10)
+```
+
+
+
+### 10. GO & KEGG analysis 
 
 + GO and bar plot
 
@@ -313,7 +375,8 @@ write.csv(temp1,"converted.csv")
 > dev.off()
 ```
 
-<div align=left><img src="C:\Users\Tao\Desktop\data processing\GO_BP.png" style="zoom:40%;" /><div>
+<div align=left><img src="C:\Users\Tao\Documents\GitHub\data processing\GO_BP.png" style="zoom:40%;" /><div>
+
 
 
 
@@ -347,5 +410,277 @@ Removed 9 rows containing missing values (geom_point).
 > dev.off()
 ```
 
-<div align=left><img src="C:\Users\Tao\Desktop\data processing\KEGG.png" style="zoom:40%;" /><div>
+<div align=left><img src="C:\Users\Tao\Documents\GitHub\data processing\KEGG.png" style="zoom:40%;" /><div>
+
+# RNA Splicing
+
+### A. [MISO](https://miso.readthedocs.io/en/fastmiso/#ways-of-running-miso-and-associated-file-formats)
+
+##### 00. Preparation
+
+```bash
+# py2.7 environment with samtools and bedtools
+conda activate py2
+```
+
+##### 01. Insert Length of paired end sequencing
+
+```bash
+#!/bin/bash
+
+input="/home/taoyuhuan/liquid/STAD/05.mapping_fq"
+output="/home/taoyuhuan/liquid/STAD/14.insert_size_by_miso/exon_1000"
+reference="/home/taoyuhuan/reference/forMISO/exon_1000"
+
+echo $(date +%F%n%T)
+exon_utils --get-const-exons /home/taoyuhuan/reference/forMISO/gencode.v34.annotation.gff3 --min-exon-size 1000 --output-dir ${reference}
+
+for file in $(ls ${input}|grep sortedByCoord.out.bam)
+	do
+	echo ${file}
+	echo $(date +%F%n%T)
+	pe_utils --compute-insert-len ${input}/${file} ${reference}/gencode.v34.annotation.min_1000.const_exons.gff  --output-dir ${output}
+done
+```
+
+##### 02. summary insert length
+
+```bash
+# !/bin/bash
+cd /home/taoyuhuan/liquid/STAD/14.insert_size_by_miso/exon_1000
+ls *.insert_len > name.txt
+head -n 1 -q *.insert_len > insert_len.txt
+paste name.txt insert_len.txt > insert_len_summary.txt
+rm name.txt
+rm insert_len.txt
+```
+
+##### 03. index gff, compute PSI and summary results
+
+```bash
+# !/bin/bash
+input="/home/taoyuhuan/liquid/STAD/05.mapping_fq"
+output="/home/taoyuhuan/liquid/STAD/15.miso_paired_end"
+reference="/home/taoyuhuan/reference/forMISO/hg19/indexed_SE"
+#index gff from MISO annotated gff
+#index_gff --index /home/taoyuhuan/reference/forMISO/hg19/ /home/taoyuhuan/reference/forMISO/hg19/indexed_SE/
+
+#readlines of pre-processed insert_len_summary.txt
+cat /home/taoyuhuan/liquid/STAD/14.insert_size_by_miso/exon_1000/insert_len_summary.txt | while read line
+do
+#get filename,mean length and sdv from var(line,str)
+file=`echo ${line}|awk -F '#' '{print $1}'`
+file=`echo ${file%.*}`
+mean=`echo ${line}|awk -F '[#,=]' '{print $3}'`
+sdv=`echo ${line}|awk -F '[#,=]' '{print $5}'`
+# index bam
+#samtools index ${input}/${file} ${input}/${file}.bai
+#run miso paired end mode
+echo 'file='${file},'mean_length='${mean},'sdv='${sdv}
+echo $(date +%F%n%T)
+mkdir ${output}/${file}
+miso --run ${reference} ${input}/${file} --output-dir ${output}/${file} --read-len 150 --paired-end ${mean} ${sdv} --settings-filename /home/taoyuhuan/tools/miniconda3/misopy/settings/miso_settings.txt
+
+summarize_miso --summarize-samples ${output}/${file} ${output}/${file}/summary_output/
+
+done
+```
+
++ Remember to set miso_settings.txt
+
+```
+[data]
+filter_results = True
+min_event_reads = 20
+strand = fr-unstranded
+
+[cluster]
+cluster_command = qsub
+
+[sampler]
+burn_in = 500
+lag = 10
+num_iters = 5000
+num_chains = 6
+num_processors = 4
+```
+
+##### 04. comparison between two samples and filter diff splicing events
+
+```bash
+# compare
+compare_miso --compare-samples NC_PKU-27Aligned.sortedByCoord.out.bam STAD_2163710Aligned.sortedByCoord.out.bam comparison
+# filter
+filter_events --filter NC_PKU-27Aligned.sortedByCoord.out.bam_vs_STAD_2163710Aligned.sortedByCoord.out.bam.miso_bf --num-inc 1 --num-exc 1 --num-sum-inc-exc 10 --delta-psi 0.20 --bayes-factor 10 --output-dir filtered/
+```
+
+##### 05. Sashimi plot
+
+```bash
+sashimi_plot --plot-event "chr9:34241183:34242106:+@chr9:34249777:34249959:+@chr9:34250656:34250757:+" /home/taoyuhuan/reference/forMISO/hg19/indexed /home/taoyuhuan/liquid/STAD/scripts/splicing/sashimi_plot_settings.txt --output-dir /home/taoyuhuan/liquid/STAD/15.1.splicing_plots/sashimi_plots
+
+```
+
++ Remember to set sashimi_plot_settings.txt
+
+```
+[data]
+# directory where BAM files are
+bam_prefix = /home/taoyuhuan/liquid/STAD/05.mapping_fq/
+# directory where MISO output is
+miso_prefix = /home/taoyuhuan/liquid/STAD/15.miso_paired_end
+
+bam_files = [
+    "NC_PKU-27Aligned.sortedByCoord.out.bam",
+    "NC_PKU-28Aligned.sortedByCoord.out.bam",
+    "STAD_2163710Aligned.sortedByCoord.out.bam",
+    "STAD_2244628Aligned.sortedByCoord.out.bam"]
+
+miso_files = [
+    "NC_PKU-27Aligned.sortedByCoord.out.bam",
+    "NC_PKU-28Aligned.sortedByCoord.out.bam",
+    "STAD_2163710Aligned.sortedByCoord.out.bam",
+    "STAD_2244628Aligned.sortedByCoord.out.bam"]
+
+[plotting]
+# Dimensions of figure to be plotted (in inches)
+fig_width = 7
+fig_height = 5 
+# Factor to scale down introns and exons by
+intron_scale = 30
+exon_scale = 4
+# Whether to use a log scale or not when plotting
+logged = False 
+font_size = 6
+
+bar_posteriors = False
+
+# Max y-axis
+ymax = 150
+
+# Axis tick marks
+nyticks = 3
+nxticks = 4
+
+# Whether to show axis labels
+show_ylabel = True
+show_xlabel = True
+
+# Whether to plot posterior distributions inferred by MISO
+show_posteriors = True 
+
+# Whether to plot the number of reads in each junction
+number_junctions = True
+
+resolution = .5
+posterior_bins = 40
+gene_posterior_ratio = 5
+
+# List of colors for read denisites of each sample
+colors = [
+    "#CC0011",
+    "#CC0011",
+    "#FF8800",
+    "#FF8800"]
+
+# Number of mapped reads in each sample
+# (Used to normalize the read density for RPKM calculation)
+coverages = [
+    6830944,
+    14039751,
+    4449737, 
+    6720151]
+
+# Bar color for Bayes factor distribution
+# plots (--plot-bf-dist)
+# Paint them blue
+bar_color = "b"
+
+# Bayes factors thresholds to use for --plot-bf-dist
+bf_thresholds = [0, 1, 2, 5, 10, 20]
+
+##
+## Names of colors for plotting
+##
+# "b" for blue
+# "k" for black
+# "r" for red
+# "g" for green
+#
+# Hex colors are accepted too.
+```
+
+![image-20200702164237437](C:\Users\Tao\Documents\GitHub\data processing\sashimi_plot.png)
+
+### B. [rMATS](http://rnaseq-mats.sourceforge.net/index.html)
+
+
+
+# Tips
+
+### 00. Update R
+
+```R
+# 安装包"installr"
+install.packages("installr")
+# 导入包
+library(installr)
+# 升级
+updateR()
+# 包升级
+update.packages()
+# 选择镜像
+options(repos=structure(c(CRAN="https://cran.cnr.berkeley.edu/")))
+```
+
+### 01. Conda
+
+```bash
+#change channel
+pip install xxx -i https://pypi.tuna.tsinghua.edu.cn/simple
+清华：https://pypi.tuna.tsinghua.edu.cn/simple
+阿里：http://mirrors.aliyun.com/pypi/simple/
+中国科技大学 https://pypi.mirrors.ustc.edu.cn/simple/
+华中理工大学：http://pypi.hustunique.com/
+山东理工大学：http://pypi.sdutlinux.org/ 
+豆瓣：http://pypi.douban.com/simple/
+
+###### envs
+# check envs in conda
+conda envs list
+conda info --envs
+# create python2.7 environment
+conda create --name py2 python==2.7
+# enter envs
+conda activate py2
+# exit envs
+conda deactivate
+# solve no name for environment（conflicted path with conda）
+conda create -n rmats --clone /home/taoyuhuan/tools/rMATS/rmats-turbo/conda_envs/rmats
+# remove environment with only path
+conda remove -p /home/taoyuhuan/tools/rMATS/rmats-turbo/conda_envs/rmats --all
+# check packages in py2 envs
+pip list
+# install packages in py2 envs
+pip install xxx
+# freeze envs packages and verison, preserve in a .txt, and re-install
+pip freeze > py2.txt
+pip install -r py2.txt
+```
+
+### 02. environment path
+
+```bash
+#check environment path
+echo $PATH
+```
+
+
+
+### 03. reference download
+
++ ensemble [GFF]([ftp://ftp.ensembl.org/pub/current_gff3/homo_sapiens/](ftp://ftp.ensembl.org/pub/current_gff3/homo_sapiens/))
++ encode [GFF](https://www.gencodegenes.org/human/)
++ UCSC GTF FASTA
++ NCBI 
 
