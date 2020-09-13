@@ -1,4 +1,78 @@
-# **RNA different expression**
+# general
+
+## txt manipulate
+
+### Windows to linux
+
+```bash
+## windows will add ^M to the end of line before $, while linux only have $ at the end
+cat -A file | while read line
+do
+id=`echo $line | cut -d"^" -f1`
+# id is the same end with linux
+```
+
+### Intersect, union and except
+
+```bash
+## intersect
+cat a.txt b.txt | sort | uniq -d > intersected.txt
+## union
+cat a.txt b.txt | sort | uniq > union.txt
+##
+cat a.txt b.txt | sort | uniq -u > except.txt
+```
+
+### sed
+
+```bash
+# delete line contian special string, change raw file (-i), default do not change raw
+sed -i '/baidu.com/d' domain.file
+# delete special string in each site, retain other
+sed 's/_Abundance//g' Pathway_Abundance_summary.tsv > test.tsv
+# delete null line
+sed -i '/^$/d' a.txt
+```
+
+### grep
+
+```
+# show other lines without abc
+grep -v abc
+```
+
+### awk&sort
+
+```bash
+### filter colum2 != 0, sort by colum2(-k 2,sep by '\t'), from high to low(-r) as number(-n)
+cat  /BioII/lulab_b/jinyunfan/projects/exRNA-panel/classification-final/output/metagenomics/CRC-STAD,LUAD,HCC,ESCA/features.txt | awk -F '\t' '$2 != 0.0' | sort -n -r -k 2
+```
+
+### Judge Phred+33/64(not suit for sra transformed fastq)
+
+```bash
+zcat /BioII/lulab_b/jinyunfan/projects/exSEEK/exSeek-dev/output/pico_reverse/unmapped/CRC-2124325/circRNA_1.fastq.gz | head -100 | awk '{if(NR%4==0) printf("%s",$0);}' |  od -A n -t u1 | awk 'BEGIN{min=100;max=0;}{for(i=1;i<=NF;i++) {if($i>max) max=$i; if($i<min) min=$i;}}END{if(max<=74 && min<59) print "Phred+33"; else if(max>73 && min>=64) print "Phred+64"; else if(min>=59 && min<64 && max>73) print "Solexa+64"; else print "Unknown score encoding!";}'
+
+```
+
+### A. SeqPrep
+
++ Installation
+  + Download [SeqPrep](https://codeload.github.com/jstjohn/SeqPrep/zip/master)
+  + cd /path/to/SeqPrep
+  + make install
+
++ Usage
+
+  ```bash
+  /home/taoyuhuan/tools/SeqPrep-master/SeqPrep
+  
+  /home/taoyuhuan/tools/SeqPrep-master/SeqPrep -f circRNA_1.fastq.gz -r circRNA_2.fastq.gz -1 CRC-2124325_1.fastq.gz -2 CRC-2124325_2.fastq.gz -3 CRC-2124325_1_discard.fastq.gz -4 CRC-2124325_2_discard.fastq.gz -s CRC-2124325.fastq.gz
+  ```
+  
++ 
+
+# RNA different expression
 
 ### 01. Raw data
 
@@ -469,7 +543,7 @@ reference="/home/taoyuhuan/reference/forMISO/hg19/indexed_SE"
 cat /home/taoyuhuan/liquid/STAD/14.insert_size_by_miso/exon_1000/insert_len_summary.txt | while read line
 do
 #get filename,mean length and sdv from var(line,str)
-file=`echo ${line}|awk -F '#' '{print $1}'`
+file=`echo ${line}|awk -F '#' '{print $1}'` 
 file=`echo ${file%.*}`
 mean=`echo ${line}|awk -F '[#,=]' '{print $3}'`
 sdv=`echo ${line}|awk -F '[#,=]' '{print $5}'`
@@ -614,6 +688,213 @@ bf_thresholds = [0, 1, 2, 5, 10, 20]
 
 ### B. [rMATS](http://rnaseq-mats.sourceforge.net/index.html)
 
+```bash
+sh run_rmats --b1 /home/taoyuhuan/liquid/STAD/scripts/splicing/rmats/NC2.txt --b2 /home/taoyuhuan/liquid/STAD/scripts/splicing/rmats/STAD2.txt --gtf /home/taoyuhuan/reference/forrMATS/gencode.v34.annotation.gtf -t paired --readLength 150 --nthread 4 --od /home/taoyuhuan/liquid/STAD/16.rMATS_Alternative_Splicing --tmp /home/taoyuhuan/liquid/STAD/16.rMATS_Alternative_Splicing/tmp
+```
+
+# Metagenomics
+
+### A. picrust2
+
+```bash
+# install by conda *
+conda create -n picrust2 -c bioconda -c conda-forge picrust2
+# install by git
+
+```
+
+### B. [HUMAnN 2.0](https://github.com/biobakery/biobakery/wiki/humann2)
+
++ Installation
+
+```bash
+# add biobakery to first channel
+conda config --add channels biobakery
+# create env for hummann2
+conda create -n humann2 python=2.7
+# install by conda
+conda install -c biobakery humann2
+conda install -c bioconda metaphlan2=2.6.0
+# [export metaphlan scripts to PATH](not required if use conda)(https://github.com/biobakery/biobakery/wiki/metaphlan2)
+# export PATH=$MDIR:$MDIR/utils/:$PATH
+# downlaod reference data
+humann2_databases --download chocophlan full /home/taoyuhuan/reference/forHUMAnN2/
+humann2_databases --download uniref uniref90_diamond /home/taoyuhuan/reference/forHUMAnN2/
+# download utility_mapping for rename and regroup
+ humann2_databases --download utility_mapping full /home/taoyuhuan/reference/forHUMAnN2/
+# test
+humann2 --input demo.fastq --output demo_fastq
+
+# but error
+# CRITICAL ERROR: Can not call software version for metaphlan2.py
+# because conda install -c biobakery humann2 installed a higher version metaphlan2==2.7
+# if conda install -c bioconda metaphlan2=2.6.0 installed humann2-2.8.1-py27_0
+# we should re-install conda install -c biobakery humann2
+# bioconda::humann2-2.8.1-py27_0 --> biobakery::humann2-0.11.2-py27_0
+```
+
++ Usage
+
+``` bash
+# config database folder
+humann2_config --update database_folders protein /home/taoyuhuan/reference/forHUMAnN2/uniref
+humann2_config --update database_folders nucleotide /home/taoyuhuan/reference/forHUMAnN2/chocophlan
+# run: humann2 --input {file} --output {dir}
+humann2 --input /BioII/lulab_b/jinyunfan/projects/exSEEK/exSeek-dev/output/pico-final/unmapped/CRC-2124325/circRNA_1.fastq.gz --output CRC-2124325
+# attach features to name
+humann2_rename_table --input CRC-2124325_genefamilies.tsv --output CRC-2124325_uniref90_genefamilies-names.tsv --names uniref90
+# regroup and rename
+humann2_regroup_table -i CRC-2124325_genefamilies.tsv -g uniref90_ko -o CRC-2124325_ko_genefamilies.tsv
+humann2_rename_table --input CRC-2124325_ko_genefamilies.tsv --names kegg-orthology --output CRC-2124325_ko_genefamilies-names.tsv
+# cp to one dir and summary
+cp /home/taoyuhuan/liquid/metagenomics/humann2_results/*/*_pathabundance.tsv /home/taoyuhuan/liquid/metagenomics/humann2_results_summary/
+humann2_join_tables --input /home/taoyuhuan/liquid/metagenomics/humann2_results_summary/ --output Pathway_Abundance_summary.tsv
+# delete repeat 
+sed 's/_Abundance//g' Pathway_Abundance_summary.tsv > test.tsv
+# normalize to cpm or relative abundance(relab)
+humann2_renorm_table --input test.tsv --units relab --output Pathway_Abundance_normalized.tsv
+# test by KW H-test
+humann2_associate -i Cancertypes_associate_pathway_abundance_partial.tsv -m CANCERtypes -l CANCERtypes -t categorical -o /home/taoyuhuan/liquid/metagenomics/humann2_summary/cancertypes_pathway_KW-H-test.txt -f 0.2
+```
+
++ plot by humann2
+
+  ```bash
+  humann2_barplot --input Cancertypes_associate_pathway_abundance_partial.tsv --focal-feature PWY-7219 --focal-metadatum CANCERtypes --last-metadatum CANCERtypes -x -s sum --output PWY-7219.png
+  ```
+
++ plot by graphlan
+
+  ```bash
+  # install in humann2 env (python2.7)
+  conda instal graphlan
+  # make anno and tree for plot
+  /home/taoyuhuan/tools/miniconda3/envs/humann2/bin/export2graphlan/export2graphlan.py --skip_rows 1,2 -i /home/taoyuhuan/liquid/metagenomics/humann2_summary/buglist_summary.tsv --tree merged_abundance.tree.txt --annotation merged_abundance.annot.txt --most_abundant 100 --abundance_threshold 1 --least_biomarkers 10 --annotations 5,6 --external_annotations 7 --min_clade_size 1
+  # merge
+  /home/taoyuhuan/tools/miniconda3/envs/humann2/bin/graphlan_annotate.py --annot merged_abundance.annot.txt merged_abundance.tree.txt merged_abundance.xml
+  # plot
+  /home/taoyuhuan/tools/miniconda3/envs/humann2/bin/graphlan.py --dpi 300 merged_abundance.xml merged_abundance.png --external_legends
+  ```
+
+  
+
+### C. QIIME2
+
++ Installation
+
+```bash
+wget https://data.qiime2.org/distro/core/qiime2-2020.6-py36-linux-conda.yml
+conda env create -n qiime2-2020.6 --file qiime2-2020.6-py36-linux-conda.yml
+conda activate qiime2-2020.6
+```
+
++ Usage
+
+```bash
+
+```
+
+# Test
+
+1. Binomial test
+
+   ```R
+   #Binomial_pvalue
+   output_pvalue=c()
+   for(i in 1:nrow(LUAD_df)){
+     p <- binom.test(x=as.numeric(LUAD_df[i,'Postive.in.Current.smoker']),n=as.numeric(LUAD_df[i,'Total.Current.smoker']),p=as.numeric(LUAD_df[i,'Proportion.in.Never']),alternative="greater")
+     output_pvalue=rbind(output_pvalue,as.data.frame(p$p.value))
+   }
+   rownames(output_pvalue) <- LUAD_df$锘縯axo
+   output_pvalue <- cbind(LUAD_df,output_pvalue)
+   write.csv(output_pvalue,"p.csv")
+   ```
+
+2. 2 Proportion test in R？
+
+   ```R
+   #2 proportion_pvalue
+   output_pvalue_2prop=c()
+   for(i in 1:nrow(LUAD_df)){
+     p <- prop.test(c(as.numeric(LUAD_df[i,'Postive.in.Never.smoker']),as.numeric(LUAD_df[i,'Postive.in.Current.smoker'])),c(as.numeric(LUAD_df[i,'Total.Never.smoker']),as.numeric(LUAD_df[i,'Total.Current.smoker'])))
+     output_pvalue_2prop=rbind(output_pvalue_2prop,as.data.frame(p$p.value))
+   }
+   rownames(output_pvalue_2prop) <- LUAD_df$锘縯axo
+   head(output_pvalue_2prop)
+   output_pvalue_2prop <- cbind(output_pvalue,output_pvalue_2prop)
+   write.csv(output_pvalue_2prop,"p_2prop.csv")
+   ```
+
+3. 2 Proportion test in python3.7 √
+
+   ```python
+   # !/bin/python
+   # -*- coding: utf-8 -*-
+   
+   import numpy as np
+   import pandas as pd
+   from statsmodels.stats.proportion import proportions_ztest
+   from sys import argv
+   script, filename = argv
+   i = 1
+   df = pd.read_csv(filename,header=0)
+   output = open("pvalue.txt",'w')
+   output.write(filename+"p_2proportion\n")
+   output.close()
+   for i in range(len(df)):
+   	count = np.array([df.loc[i,'Positive.in.low'],df.loc[i,'Positive.in.high']])
+   	nobs = np.array([df.loc[i,'Total.CEA.low'],df.loc[i,'Total.high']])
+   	stat, pval = proportions_ztest(count, nobs)
+   	output = open("pvalue.txt",'a')
+   	output.write(str(pval)+"\n")
+   	output.close()
+   ```
+   
+4. hyper geometry test
+
+   ```R
+   #phyper test(hypergeometry test)
+   #phyper(q,M,N-M,k)
+   #q=picked number of a specific genus(N=genus exist in one group)
+   #M=exist number of the genus in both group(M=genus exist in group A+B)
+   #N=all samples
+   #k=trails number(k>q,k=sample number in one group)
+   ?phyper
+   output_pvalue_phyper=c()
+   for(i in 1:nrow(LUAD_df)) {
+     if(as.numeric(LUAD_df[i,'Proportion.in.Current'])>as.numeric(LUAD_df[i,'Proportion.in.Never'])) {
+       M=as.numeric(LUAD_df[i,'Postive.in.Current.smoker'])+as.numeric(LUAD_df[i,'Postive.in.Never.smoker'])
+       p <- phyper(as.numeric(LUAD_df[i,'Postive.in.Current.smoker'])-1,M,34-M,as.numeric(LUAD_df[i,'Total.Current.smoker']),lower.tail=FALSE)
+       output_pvalue_phyper=rbind(output_pvalue_phyper,as.data.frame(p))
+       }
+     else{
+       M=as.numeric(LUAD_df[i,'Postive.in.Current.smoker'])+as.numeric(LUAD_df[i,'Postive.in.Never.smoker'])
+       p <- phyper(as.numeric(LUAD_df[i,'Postive.in.Never.smoker'])-1,M,34-M,as.numeric(LUAD_df[i,'Total.Never.smoker']),lower.tail=FALSE)
+       output_pvalue_phyper=rbind(output_pvalue_phyper,as.data.frame(p))
+       }
+   }
+   rownames(output_pvalue_phyper) <- LUAD_df$锘縯axo
+   head(output_pvalue_phyper)
+   output_pvalue_phyper <- cbind(output_pvalue_2prop,output_pvalue_phyper)
+   write.csv(output_pvalue_phyper,"p_phyper.csv")
+   ```
+
+5. FDR_BH
+
+   ```R
+   #BH_fdr
+   pvalue_to_fdr <- read.csv("LUAD_pvalue_filtered.csv",header=T)
+   pvalue_to_fdr <- as.numeric(unlist(pvalue_to_fdr$p.p.value))
+   length(pvalue_to_fdr)
+   
+   fdr <- p.adjust(pvalue_to_fdr, method = "BH", n = length(pvalue_to_fdr))
+   as.data.frame(fdr)
+   pvalue_to_fdr <- cbind(pvalue_to_fdr,fdr)
+   write.csv(pvalue_to_fdr,"LUAD_filtered.csv")
+   
+   length(pvalue_to_fdr$p.p.value)
+   ```
+
 
 
 # Tips
@@ -636,6 +917,9 @@ options(repos=structure(c(CRAN="https://cran.cnr.berkeley.edu/")))
 ### 01. Conda
 
 ```bash
+##### channels
+# add channel
+conda config --add channels biobakery
 #change channel
 pip install xxx -i https://pypi.tuna.tsinghua.edu.cn/simple
 清华：https://pypi.tuna.tsinghua.edu.cn/simple
@@ -673,14 +957,75 @@ pip install -r py2.txt
 ```bash
 #check environment path
 echo $PATH
+# check the path of software in-use
+which metaphlan.py
 ```
 
+### 03. check system
 
+```bash
+# check system
+lscpu
+Architecture:          x86_64
+CPU op-mode(s):        32-bit, 64-bit
+Byte Order:            Little Endian
+CPU(s):                16
+On-line CPU(s) list:   0-15
+Thread(s) per core:    2
+Core(s) per socket:    4
+Socket(s):             2
+NUMA node(s):          2
+Vendor ID:             GenuineIntel
+CPU family:            6
+Model:                 79
+Model name:            Intel(R) Xeon(R) CPU E5-2637 v4 @ 3.50GHz
+Stepping:              1
+CPU MHz:               1201.074
+CPU max MHz:           3700.0000
+CPU min MHz:           1200.0000
+BogoMIPS:              6999.38
+Virtualization:        VT-x
+L1d cache:             32K
+L1i cache:             32K
+L2 cache:              256K
+L3 cache:              15360K
+NUMA node0 CPU(s):     0,2,4,6,8,10,12,14
+NUMA node1 CPU(s):     1,3,5,7,9,11,13,15
+Flags:                 fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf eagerfpu pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 fma cx16 xtpr pdcm pcid dca sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch epb cat_l3 cdp_l3 invpcid_single intel_pt spec_ctrl ibpb_support tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 hle avx2 smep bmi2 erms invpcid rtm cqm rdt_a rdseed adx smap xsaveopt cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local dtherm ida arat pln pts
+# check real time cpu (live update) 
+top
 
-### 03. reference download
+# check file/dir size
+du -h --max-depth=1 /BioII/lulab_b/jinyunfan/projects/exSEEK/exSeek-dev/output/pico-final/unmapped/*/circRNA*
+```
+
+### 04. reference download
 
 + ensemble [GFF]([ftp://ftp.ensembl.org/pub/current_gff3/homo_sapiens/](ftp://ftp.ensembl.org/pub/current_gff3/homo_sapiens/))
 + encode [GFF](https://www.gencodegenes.org/human/)
 + UCSC GTF FASTA
 + NCBI 
+
+### 05. log
+
+```bash
+nohup command > name.log 2>&1 &
+```
+
+### 06. R loop
+
+```R
+setwd("C:/Users/Tao/Desktop/")
+LUAD_df <- read.csv("LUAD_df.csv",header=TRUE)
+head(LUAD_df)
+
+output_pvalue=c()
+for(i in 1:nrow(LUAD_df)){
+  p <- binom.test(x=as.numeric(LUAD_df[i,'Postive.in.Current.smoker']),n=as.numeric(LUAD_df[i,'Total.Current.smoker']),p=as.numeric(LUAD_df[i,'Proportion.in.Never']),alternative="greater")
+  output_pvalue=rbind(output_pvalue,as.data.frame(p$p.value))
+}
+
+rownames(output_pvalue) <- LUAD_df$锘縯axo
+write.csv(output_pvalue,"p.csv")
+```
 
