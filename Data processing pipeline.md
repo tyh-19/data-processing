@@ -667,17 +667,267 @@ cat COAD_RNA_Seq_summary.tsv | grep "Recurrent Solid Tumor" | awk -F '     ' '{p
 
 ### 13.bigwig normalize
 
+```bash
 
+```
+
+### 14.GSEA
+
++ Make genesets by DE
+
+  ```bash
+  # get inhoused CRC featurecount summarized matrix and TCGA READ/COAD matrix
+  
+  # get group information
+  cat featurecount_summary.txt | head -1 | tr '    ' '\n' | grep plasma | grep -v "2399129\|2384058" > CRC_plasma.txt
+  cat featurecount_summary.txt | head -1 | tr '    ' '\n' | grep NC > NC_plasma.txt
+  cat featurecount_summary.txt | head -1 | tr '    ' '\n' | grep NC | grep PKU > NC_PKU_plasma.txt
+  cat featurecount_summary.txt | head -1 | tr '    ' '\n' | grep CRC | grep T > CRC_Tumor.txt
+  cat featurecount_summary.txt | head -1 | tr '    ' '\n' | grep CRC | grep N > CRC_Normal.txt
+  
+  # DE (with replicates)
+  Rscript ../scripts/differential_expression.R -i ./raw_matrix/featurecount_summary.txt -p ./group/CRC_Tumor.txt -n ./group/CRC_Normal.txt -m edger_glmlrt -o CRC_Tumor_vs_Normal.txt
+  
+  Rscript ../scripts/differential_expression.R -i ./raw_matrix/htseqcount_summary_COAD.txt -p ./group/COAD_PrimarySolidTumor.txt -n ./group/COAD_SolidTissueNormal.txt -m edger_glmlrt -o ./DE/TCGA_Tumor_vs_Normal.txt
+  
+  Rscript ../scripts/differential_expression.R -i ./raw_matrix/htseqcount_summary_READ.txt -p ./group/READ_PrimarySolidTumor.txt -n ./group/READ_SolidTissueNormal.txt -m edger_glmlrt -o ./DE/READ_Tumor_vs_Normal.txt
+  
+  # DE (without replicates)
+  # Convert featurecount2gfold format
+  # !/bin/bash
+  input="/BioII/lulab_b/taoyuhuan/liquid/CRC_piared_tissue/09.featureCounts_repair"
+  output="/BioII/lulab_b/taoyuhuan/liquid/GSEA/Geneset_1027/gfold"
+  file=$(ls ${input} | grep -v .summary )
+  for filename in ${file}
+  do
+  echo ${filename}
+  cat ${input}/${filename} | awk '{print $1,"GeneName "$7,$6,"1"}' | tr ' ' '\t' > ${output}/${filename}_gfold.txt; sed -i '1,2d' ${output}/${filename}_gfold.txt
+  done
+  
+  # Gfold diff
+  
+  # input featurecount and gfold count respectively, then we can compare the difference between two count method
+  # !/bin/bash
+  
+  input="/home/taoyuhuan/liquid/GSEA/Geneset_1027/gfold"
+  output="/home/taoyuhuan/liquid/GSEA/Geneset_1027/gfold/diff_forGMX"
+  
+  
+  file=$(ls ${input} | grep T | cut -d "." -f 1 | cut -d "-" -f 1,2)
+  for filename in ${file}
+  do
+  echo ${filename}
+  #gfold diff -acc T -s1 ${input}/${filename}-N_gfold -s2 ${input}/${filename}-T_gfold -suf .txt -o ${output}/${filename}-T_vs_N_featurecount.diff
+  
+  cat ${output}/${filename}-T_vs_N_featurecount.diff | awk '!($3==0){print $1,$3}' | tr ' ' '\t' > ${input}/geneset/${filename}_T_vs_N.tmp
+  sed -i '1,9d' ${input}/geneset/${filename}_T_vs_N.tmp
+  cat ${input}/geneset/${filename}_T_vs_N.tmp | tail -n +2 | sort -r -t ' ' -n -k 2 > ${input}/geneset/${filename}_T_vs_N.txt
+  sed -i '1i\GeneID       Gfold' ${input}/geneset/${filename}_T_vs_N.txt
+  rm ${input}/geneset/${filename}_T_vs_N.tmp
+  done
+  
+  # merge to .gmx
+  #!/bin/bash
+  input_gfold="/home/taoyuhuan/liquid/GSEA/Geneset_1027/gfold/geneset"
+  input_DE="/home/taoyuhuan/liquid/GSEA/Geneset_1027/DE"
+  output="/home/taoyuhuan/liquid/GSEA/Geneset_1027/geneset"
+  
+  file=$(ls ${input_gfold} | grep .txt | grep "2416785\|2418277\|2418488\|2418503\|2418658" | cut -d '.' -f 1)
+  
+  # sort is from low to high, head is down while tail is up
+  for filename in ${file}
+  do
+  echo ${filename}
+  cat ${input_gfold}/${filename}.txt | tail -n +2 | sort -t "     " -n -k 2 | head -500 | awk '{print $1}'> ${output}/${filename}_Down_500.txt
+  cat ${input_gfold}/${filename}.txt | tail -n +2 | sort -t "     " -n -k 2 | tail -500 | awk '{print $1}'> ${output}/${filename}_Up_500.txt
+  sed -i "1i/${filename}_Up_500" ${output}/${filename}_Up_500.txt
+  sed -i "1i/${filename}_Down_500" ${output}/${filename}_Down_500.txt
+  done
+  
+  file2=$(ls ${input_DE} | grep .txt | cut -d '.' -f 1)
+  
+  for filename2 in ${file2}
+  do
+  echo ${filename2}
+  cat ${input_DE}/${filename2}.txt | tail -n +2 | awk '($6<=0.05){print $0}' | sort -t "  " -n -k 2 | head -500 | awk '{print $1}'> ${output}/${filename2}_Down_500.tmp
+  cat ${input_DE}/${filename2}.txt | tail -n +2 | awk '($6<=0.05){print $0}' | sort -t "  " -n -k 2 | tail -500 | awk '{print $1}'> ${output}/${filename2}_Up_500.tmp
+  sed -i "1i/${filename2}_Up_500" ${output}/${filename2}_Up_500.tmp
+  awk -F '|' '{print $1}' ${output}/${filename2}_Up_500.tmp > ${output}/${filename2}_Up_500.txt
+  sed -i "1i/${filename2}_Down_500" ${output}/${filename2}_Down_500.tmp
+  awk -F '|' '{print $1}' ${output}/${filename2}_Down_500.tmp > ${output}/${filename2}_Down_500.txt
+  rm ${output}/*.tmp
+  done
+  
+  paste ${output}/*500.txt > ${output}/Geneset_1027.gmx
+  
+  rm ${output}/*.txt
+  
+  ```
+
+  
+
++ Make ranksets by ratio
+
+  ```bash
+  # for comparisom between group
+  python ../scripts/TPM.py -i featurecount_summary.txt -o TPM.txt
+  
+  # filter genes TPM < 1, showup <50%
+  python ../scripts/filter.py -i TPM.txt -o Filtered_TPM.txt -p 0.5 -s 1
+  
+  calculate average in python:https://jingyan.baidu.com/article/4ae03de3b436233eff9e6b94.html
+  # calculate group average
+  ## All NC average (N=99)
+  python ../scripts/row_average.py -i Filtered_TPM.txt -g NC -u CRC -o group_average.txt
+  ## All PKU NC average (N=54)
+  python ../scripts/row_average.py -i group_average.txt -g NC_PKU -u CRC -o group_average.txt
+  ## All ShH NC average (N = 33)
+  python ../scripts/row_average.py -i group_average.txt -g NC_ShH -u CRC -o group_average.txt
+  ## All ChQ NC average (N = 12)
+  python ../scripts/row_average.py -i group_average.txt -g NC_ChQ -u CRC -o group_average.txt
+  ## All CRC-plasma average (N = 84)
+  python ../scripts/row_average.py -i group_average.txt -g CRC -u N,T,plasma,PBMC -o group_average.txt
+  ## All paired Normal (N =15)
+  python ../scripts/row_average.py -i group_average.txt -g N -u NC,plasma,PBMC,T -o group_average.txt
+  ## All paired Tumor (N = 15)
+  python ../scripts/row_average.py -i group_average.txt -g T -u plasma,PBMC,N -o group_average.txt
+  ```
+
+  + row_average.py
+
+  ```python
+  import warnings
+  warnings.simplefilter(action='ignore', category=FutureWarning)
+  import numpy as np
+  import pandas as pd
+  import argparse
+  import sys
+  parser = argparse.ArgumentParser(description='Calculate specific row average')
+  parser.add_argument('--input', '-i', type=str, required=True, help='input count matrix')
+  parser.add_argument('--output','-o',type=str,required=True,help='output matrix')
+  parser.add_argument('--group','-g',type=str,required=True,help='interested group')
+  parser.add_argument('--ungroup','-u',type=str,required=True,help='uninterested group, default remove "Average_". If more than one element, split by ,')
+  args = parser.parse_args()
+  
+  def in_uninterested(n):
+          i=0
+          j=0
+          while i < len(ungroup_list):
+                  #print(ungroup_list[i])
+                  if ungroup_list[i] in n:
+                          i=i+1
+                          j=j+1
+                  else:
+                          i=i+1
+          if j == 0:
+                  return 1
+          else:
+                  return 0
+  
+  print("Load data ...")
+  df = pd.read_csv(args.input,index_col=0,sep="\t")
+  
+  ungroup_list = ['Average_']
+  ungroup_list.extend(args.ungroup.split(','))
+  
+  print("Number of intersted:")
+  print(len(list(df.filter(like=args.group).columns)))
+  print((list(df.filter(like=args.group).columns)))
+  
+  # axis = 1, row elements average; while axis = 0, column elements average
+  df['Average_'+args.group] = df[list(filter(in_uninterested,list(df.filter(like=args.group).columns)))].mean(axis=1)
+  
+  print("Unwanted list:")
+  print(ungroup_list)
+  print("Number of interested after remove unwanted:")
+  print(len(list(filter(in_uninterested,list(df.filter(like=args.group).columns)))))
+  print("Average of:")
+  print((list(filter(in_uninterested,list(df.filter(like=args.group).columns)))))
+  df.to_csv(args.output,sep="\t")
+  print("Done.")
+  ```
+
+  + subset_by_col.py
+
+  ```bash
+  # single Normal
+  python ../scripts/subset_by_col.py -i group_average.txt -o Normal.txt -w N -u NC
+  # single Tumor
+  python ../scripts/subset_by_col.py -i group_average.txt -o Tumor.txt -w T
+  # single plasma, CRC-2399129 low mapping ratio after repair STAR mapping
+  python ../scripts/subset_by_col.py -i group_average.txt -o plasma.txt -w plasma -u 2399129
+  # all Average
+  # Geneid|Length   Average_NC      Average_NC_PKU  Average_NC_ShH  Average_NC_ChQ  Average_CRC     Average_N       Average_T
+  python ../scripts/subset_by_col.py -i group_average.txt -o Average.txt -w Average -u Unwanted
+  
+  ##make rnk
+  cat Average.txt | awk '($2+0!=0){print $1,$6/$2}' > plasma_average_CRC_vs_average_HD.rnk
+  cat Average.txt | awk '($3+0!=0){print $1,$6/$3}' > plasma_average_CRC_vs_average_HD_PKU.rnk
+  cat Average.txt | awk '($7+0!=0){print $1,$8/$7}' > Tissue_average_Tumor_vs_average_Normal.rnk
+  
+  (base) [taoyuhuan@cnode Rankset_1027]$ paste Average.txt plasma.txt | head -1
+  Geneid|Length	Average_NC	Average_NC_PKU	Average_NC_ShH	Average_NC_ChQ	Average_CRC	Average_N	Average_T	Geneid|Length	CRC-2416785-plasma	CRC-2418277-plasma	CRC-2418488-plasma	CRC-2418503-plasma	CRC-2418658-plasma
+  (base) [taoyuhuan@cnode Rankset_1027]$ paste Average.txt plasma.txt | awk '($2+0!=0){print $1,$10/$2}' > CRC-2416785-plasma_vs_average_HD.rnk
+  (base) [taoyuhuan@cnode Rankset_1027]$ paste Average.txt plasma.txt | awk '($2+0!=0){print $1,$11/$2}' > CRC-2418277-plasma_vs_average_HD.rnk
+  (base) [taoyuhuan@cnode Rankset_1027]$ paste Average.txt plasma.txt | awk '($2+0!=0){print $1,$12/$2}' > CRC-2418488-plasma_vs_average_HD.rnk
+  (base) [taoyuhuan@cnode Rankset_1027]$ paste Average.txt plasma.txt | awk '($2+0!=0){print $1,$13/$2}' > CRC-2418503-plasma_vs_average_HD.rnk
+  (base) [taoyuhuan@cnode Rankset_1027]$ paste Average.txt plasma.txt | awk '($2+0!=0){print $1,$14/$2}' > CRC-2418658-plasma_vs_average_HD.rnk
+  (base) [taoyuhuan@cnode Rankset_1027]$ paste Average.txt plasma.txt | awk '($3+0!=0){print $1,$10/$3}' > CRC-2416785-plasma_vs_average_HD_PKU.rnk
+  (base) [taoyuhuan@cnode Rankset_1027]$ paste Average.txt plasma.txt | awk '($3+0!=0){print $1,$11/$3}' > CRC-2418277-plasma_vs_average_HD_PKU.rnk
+  (base) [taoyuhuan@cnode Rankset_1027]$ paste Average.txt plasma.txt | awk '($3+0!=0){print $1,$12/$3}' > CRC-2418488-plasma_vs_average_HD_PKU.rnk
+  (base) [taoyuhuan@cnode Rankset_1027]$ paste Average.txt plasma.txt | awk '($3+0!=0){print $1,$13/$3}' > CRC-2418503-plasma_vs_average_HD_PKU.rnk
+  (base) [taoyuhuan@cnode Rankset_1027]$ paste Average.txt plasma.txt | awk '($3+0!=0){print $1,$14/$3}' > CRC-2418658-plasma_vs_average_HD_PKU.rnk
+  
+  
+  ```
+
+  
 
 # RNA Splicing
 
 ### A. [MISO](https://miso.readthedocs.io/en/fastmiso/#ways-of-running-miso-and-associated-file-formats)
 
+##### 000. installation and test
+
+```bash
+conda create -n miso python=2.7
+conda activate miso
+#install
+pip install misopy
+#check module, samtools is needed
+module_availability
+#test
+python -m unittest discover misopy
+
+```
+
+```python
+# prepera test files if error with no such files
+cp -r /home/taoyuhuan/tools/miniconda3/envs/miso/misopy/* /home/taoyuhuan/tools/miniconda3/envs/miso/lib/python2.7/site-packages/misopy/
+### 修改部分sam_to_bam.py(wd:/home/taoyuhuan/tools/miniconda3/envs/miso/lib/python2.7/site-packages/misopy/sam_to_bam.py)
+##1.把绝对路径加到samtools前 2.修改sorted_filenames = ”%s.sorted.bam“ %(bam_filename.split(".bam")[0]) 3. cmd = "/home/taoyuhuan//tools/miniconda3/envs/miso/bin/samtools sort %s -o %s"加入-o，以适应新版本samtools
+
+# Sort
+    print "Sorting BAM file..."
+    sorted_filename = "%s.sorted.bam" %(bam_filename.split(".bam")[0])
+    cmd = "/home/taoyuhuan//tools/miniconda3/envs/miso/bin/samtools sort %s -o %s" %(bam_filename,
+                                  sorted_filename)
+    print "  - Executing: %s" %(cmd)
+    os.system(cmd)
+
+    # Index
+    final_filename = "%s.bam" %(sorted_filename)
+    print "Indexing BAM..."
+    cmd = "/home/taoyuhuan//tools/miniconda3/envs/miso/bin/samtools index %s" %(final_filename)
+    print "  - Executing: %s" %(cmd)
+    os.system(cmd)
+```
+
 ##### 00. Preparation
 
 ```bash
 # py2.7 environment with samtools and bedtools
-conda activate py2
+conda activate miso
 ```
 
 ##### 01. Insert Length of paired end sequencing
@@ -1005,6 +1255,28 @@ conda activate qiime2-2020.6
 
 + 
 
+# Shallow DNA seq for SNA detetcion
+
+### WisecondorX
+
+##### 00. Install
+
+```bash
+conda create -n WisecondorX python=2.7
+conda activate WisecondorX
+conda install -f -c conda-forge -c bioconda wisecondorx
+## check by
+WisecondorX
+## any import error can be fixed by correct the import grammar acorrding to specific version
+
+```
+
+
+
+##### 01.test
+
+
+
 # Test
 
 1. Binomial test
@@ -1238,5 +1510,67 @@ for(i in 1:nrow(LUAD_df)){
 
 rownames(output_pvalue) <- LUAD_df$锘縯axo
 write.csv(output_pvalue,"p.csv")
+```
+
+### 07. Bus error
+
+```bash
+##Problem: import numpy then exit python, report Bus error; conda env list, report bus error;
+##solution:
+#check storage
+df -h
+#or check tmp
+df -h /tmp/
+# if 100% used, delete something
+```
+
+### 08. Count genetype in GTF
+
+```bash
+cat gencode.gtf |perl -alne '{next unless $F[2] eq "gene" ;/gene_type "(.*?)";/;print $1}'  |sort |uniq -c > genetype.txt
+
+##output
+gencode.gtf
+    14 IG_C_gene
+      9 IG_C_pseudogene
+     37 IG_D_gene
+     18 IG_J_gene
+      3 IG_J_pseudogene
+      1 IG_pseudogene
+    144 IG_V_gene
+    188 IG_V_pseudogene
+  16899 lncRNA
+   1881 miRNA
+   2212 misc_RNA
+      2 Mt_rRNA
+     22 Mt_tRNA
+     49 polymorphic_pseudogene
+  10169 processed_pseudogene
+  19954 protein_coding
+     18 pseudogene
+      8 ribozyme
+     47 rRNA
+    497 rRNA_pseudogene
+     49 scaRNA
+      1 scRNA
+    943 snoRNA
+   1901 snRNA
+      5 sRNA
+   1058 TEC
+    500 transcribed_processed_pseudogene
+    138 transcribed_unitary_pseudogene
+    941 transcribed_unprocessed_pseudogene
+      2 translated_processed_pseudogene
+      1 translated_unprocessed_pseudogene
+      6 TR_C_gene
+      4 TR_D_gene
+     79 TR_J_gene
+      4 TR_J_pseudogene
+    106 TR_V_gene
+     33 TR_V_pseudogene
+     97 unitary_pseudogene
+   2615 unprocessed_pseudogene
+      1 vault_RNA
+
 ```
 
