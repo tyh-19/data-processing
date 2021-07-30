@@ -2,6 +2,29 @@ Copy commands may not work due to format change between Mac-linux, Win-linux, ty
 
 # General
 
+## Data download
+
+### aspera
+
+```bash
+wget https://download.asperasoft.com/download/sw/connect/3.9.1/ibm-aspera-connect-3.9.1.171801-linux-g2.12-64.tar.gz
+tar zxvf ibm-aspera-connect-3.9.1.171801-linux-g2.12-64.tar.gz
+bash ibm-aspera-connect-3.9.1.171801-linux-g2.12-64.sh
+echo 'export PATH=$PATH:/home/taoyuhuan/.aspera/connect/bin' >> ~/.bash_profile
+source ~/.bash_profile
+```
+
+Download sra
+
+```bash
+# first get SRR numbers or SRR_Acc_List.txt
+prefetch
+```
+
+## Bed file download
+
+[what is bed and how to download from UCSC](http://www.360doc.com/content/19/0417/15/52645714_829426366.shtml)
+
 ## txt manipulate
 
 ### colum joint and count col
@@ -71,6 +94,15 @@ sed -i '/baidu.com/d' domain.file
 sed 's/_Abundance//g' Pathway_Abundance_summary.tsv > test.tsv
 # delete null line
 sed -i '/^$/d' a.txt
+
+# delete column
+##https://stackoverflow.com/questions/12716392/delete-a-column-from-a-delimited-file-in-linux
+sed 's/[^{sep}]*{sep}//3' file > new file #delete column 3 seperated by {sep}
+
+# delete head or tail or a line
+# sed "s/^xxx//" file
+# sed "s/xxx$//" file
+sed "s/^\/data\/taoyuhuan\/projects\/exOmics_RNA\/multiomics_paired\/output\/Intron-spanning\///;s/-intron-spanning.bam$//" all_paired.txt > sample_ids.txt
 ```
 
 ### grep
@@ -85,6 +117,9 @@ grep -v abc
 ```bash
 ### filter colum2 != 0, sort by colum2(-k 2,sep by '\t'), from high to low(-r) as number(-n)
 cat file | awk -F '\t' '$2 != 0.0' | sort -n -r -k 2
+
+##subset first 20 column
+cat Gut_length_summary_samtools.txt | awk '{NF=20}1' > Gut.txt
 ```
 
 ### Judge Phred+33/64(not suit for sra transformed fastq)
@@ -111,6 +146,24 @@ zcat /BioII/lulab_b/jinyunfan/projects/exSEEK/exSeek-dev/output/pico_reverse/unm
 + 
 
 # RNA different expression
+
+### 00.exseek
+
+##### Installation
+
+```bash
+# git clone
+git clone https://github.com/lulab/exSEEK.git
+# setup
+python setup.py install
+# environment sett
+```
+
+
+
+
+
+---
 
 ### 01. Raw data
 
@@ -245,6 +298,18 @@ rm ${output}/*.tmp.txt
 + [DESeq](http://www.bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html)
 
 ```R
+##installation debug
+conda install -c bioconda bioconductor-deseq2=1.24.0
+
+##ldd xxx.so for detailed not found information
+[libicui18n.so.64 not found](https://github.com/jupyter/docker-stacks/issues/927)
+conda install -c r r-stringi
+
+[libopenblas.so.0 not found](https://support.bioconductor.org/p/129970/)
+conda install -y libopenblas==0.3.7
+
+
+
 ##载入DESeq2
 > library(DESeq2)
 
@@ -1253,7 +1318,55 @@ conda activate qiime2-2020.6
 
 + demo
 
-+ 
+
+### E.remap by bowtie2
+
+```bash
+# !/bin/bash
+
+threads=2
+genome=$1
+input="/BioII/lulab_b/jinyunfan/projects/exSEEK/exSeek-dev/output/pico-final/unmapped"
+output="/BioII/lulab_b/taoyuhuan/liquid/20210113_remap_CRCmicrobes/results/end2end"
+log="/BioII/lulab_b/taoyuhuan/liquid/20210113_remap_CRCmicrobes/results/log"
+ref="/BioII/lulab_b/taoyuhuan/liquid/20210113_remap_CRCmicrobes/genome"
+disconcordant="/BioII/lulab_b/taoyuhuan/liquid/20210113_remap_CRCmicrobes/results/disconcordant"
+
+mkdir ${output}/${genome}
+samples=$(ls ${input})
+
+for sample in ${samples}
+do
+echo "Start mapping" ${sample} "to" ${genome} "at" $(date +%F%n%T)
+bowtie2 -p ${threads} \
+        --end-to-end \
+        -1 ${input}/${sample}/circRNA_1.fastq.gz -2 ${input}/${sample}/circRNA_2.fastq.gz \
+        --no-unal --un-conc-gz ${disconcordant} \
+        -x ${ref}/${genome}/${genome} 2>${log}/${sample}_${genome}_end2end.log | samtools view -b | samtools sort -m 256M -@ ${threads} > ${output}/${genome}/${sample}.bam
+echo "End mapping at" $(date +%F%n%T)
+done
+```
+
+```bash
+## 查看单一样本比对到特定基因组上丰度最高的10条序列
+samtools view CRC-2124325.bam | awk '$2==83&&$5>=30 {print $10}' | sort | uniq -c | sort -t " " -k 1 -r -n | head -10
+```
+
+# SNP
+
+VCF to ped and map
+
+```bash
+plink --vcf SRR6481081.SNP --recode --out test --double-id --allow-extra-chr
+```
+
+Ped and map to bfile
+
+
+
+
+
+
 
 # Shallow DNA seq for SNA detetcion
 
@@ -1271,9 +1384,194 @@ WisecondorX
 
 ```
 
+##### 00. Fastp
+
+```bash
+# !/bin/bash
+
+input="/BioII/lulab_b/xingshaozhen/wgs_data/N2010383_XSZ_80-557890053_libSEQ/201207-NovaA"
+output="/BioII/lulab_b/taoyuhuan/ctDNA/CRC_20201212/01.fastp"
+
+for file in $(ls ${input} | grep 1.fastq.gz | cut -d "." -f 1)
+do
+echo ${file%R*} 
+#python /home/taoyuhuan/tools/miniconda3/envs/py2/bin/after.py -1  -2 -g 01.afterqc/ -b 01.afterqc/ -r 01.afterqc/ 
+fastp -i ${input}/${file%R*}R1.fastq.gz -I ${input}/${file%R*}R2.fastq.gz -o ${output}/${file%R*}R1.out.fq.gz -O ${output}/${file%R*}R2.out.fq.gz
+done
+```
+
+##### 01. Align by bowtie2
+
+```bash
+# !/bin/bash
+
+input="/BioII/lulab_b/taoyuhuan/ctDNA/CRC_20201212/01.fastp"
+output="/BioII/lulab_b/taoyuhuan/ctDNA/CRC_20201212/02.align_hg38/bowtie2"
+ref="/BioII/lulab_b/shared/genomes/hg38/genome_index/bowtie2"
+log="/BioII/lulab_b/taoyuhuan/ctDNA/CRC_20201212/02.align_hg38/bowtie2/log"
+disconcordant="/BioII/lulab_b/taoyuhuan/ctDNA/CRC_20201212/02.align_hg38/bowtie2/disconcordant"
+threads=10
+
+for file in $(ls ${input} | grep 1.out.fq.gz | cut -d "." -f 1)
+do
+echo ${file%R*}
+bowtie2 -p ${threads} -1 ${input}/${file%R*}R1.out.fq.gz -2 ${input}/${file%R*}R2.out.fq.gz \
+         --no-unal --un-conc-gz ${disconcordant} -x ${ref}/genome 2>${log}/{${file%_combined*}}.log | \
+         samtools view -b | samtools sort -m 256M -@ ${threads} > ${output}/${file%_combined*}.bam
+done
+```
+
+##### 02. Convert to npz
+
+```bash
+# !/bin/bash
+
+input="/BioII/lulab_b/taoyuhuan/ctDNA/CRC_20201212/02.align_hg38/bowtie2"
+output="/BioII/lulab_b/taoyuhuan/ctDNA/CRC_20201212/02.1.WisecondorX/convert"
+
+for file in $(ls ${input} | grep .bam | grep -v sorted)
+do
+echo "Creating 5kb bins for sample ${file}"
+samtools sort -@ 10 ${input}/${file} -o ${input}/${file%.bam*}.sorted.bam
+samtools index -@ 10 ${input}/${file%.bam*}.sorted.bam ${input}/${file%.bam*}.sorted.bam.bai
+WisecondorX convert ${input}/${file%.bam*}.sorted.bam ${output}/${file%.bam*}.npz
+done
+```
+
+##### 03. Newref
+
+```bash
+# !/bin/bash
+
+# PARAMETERS
+
+CORES=8
+INPUT_DIR="/BioII/lulab_b/taoyuhuan/ctDNA/CRC_20201212/02.1.WisecondorX/convert" # folder containing reference .npz files
+OUTPUT_DIR="/BioII/lulab_b/taoyuhuan/ctDNA/CRC_20201212/02.1.WisecondorX/newref" # existing folder
+REF_SIZES="1000 500 200 100" # space separated list (kb)
+
+# SCRIPT
+
+for REF in ${REF_SIZES}
+do
+    echo "Creating reference at bins size ${REF} kb"
+
+    WisecondorX newref ${INPUT_DIR}/*.npz \
+    ${OUTPUT_DIR}/reference.${REF}kb.npz \
+    --binsize ${REF}000 --cpus ${CORES} --yfrac 0
+done
+##[CRITICAL - 2020-12-16 11:23:29]: Provide at least 10 samples to enable the generation of a reference.
+```
+
+#####  04. Predict CNA
 
 
-##### 01.test
+
+##### Bug record and solutions
+
+```bash
+##bug record at newref
+# python3 typo in python2.7(WiscondorX is build under 2.7) 
+File "/home/taoyuhuan/tools/miniconda3/envs/WisecondorX/lib/python2.7/site-packages/wisecondorX/main.py", line 54, in tool_newref
+    npzdata = np.load(infile, encoding='latin1', allow_pickle=True)
+TypeError: load() got an unexpected keyword argument 'encoding'
+## solution1: try install wisecondorX under py3.6,fail conflict
+Specifications:
+
+  - wisecondorx -> python[version='2.7.*|>=2.7,<2.8.0a0']
+
+Your python: python=3.6
+## solution2: deplete encoding in main.py
+solved,success load
+```
+
+
+
+
+
+# ctDNA pipeline
+
+##### 01.1 Prepare tools
+
+```bash
+git clone https://github.com/OpenGene/ctdna-pipeline.git
+# install afterqc under python2.7
+conda activate py2
+conda install afterqc
+
+# dedup script download from git
+# https://github.com/OpenGene/dedup
+# install pysam under pyrhon2.7
+conda install pysam
+
+# varscan, https://github.com/dkoboldt/varscan
+VarScan.v2.4.4.jar
+
+# download annovar, which need register and download link send to e-mail
+#http://download.openbioinformatics.org/annovar_download_form.php
+tar -zcvf annovar.latest.tar.gz
+
+# install mutscan, genefuse under python3.7
+conda install -c bioconda mutscan
+conda install -c bioconda genefuse
+
+# git clone scripts
+git clone https://github.com/OpenGene/MrBam.git
+```
+
+##### 01.2 reference
+
+```bash
+# download hg38 fasta
+http://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/
+#download filenname:hg38.fa.gz,15-Jan-2014 21:14,938M
+
+#index hg38
+bwa index reference/hg38.fa
+
+# download annovar reference from annovar, refGene, 
+./tools/annovar/annotate_variation.pl --buildver hg38 -downdb -webfrom annovar refGene ./tools/annovar/humandb/
+```
+
+##### 02. Pipeline
+
+```bash
+# afterqc, mkdir 01.afterqc, under py2
+python /home/taoyuhuan/tools/miniconda3/envs/py2/bin/after.py -1 ./demo_data/R1.fq.gz -2 ./demo_data/R2.fq.gz -g 01.afterqc/ -b 01.afterqc/ -r 01.afterqc/
+
+# fastp, under base
+fastp -i ${input}/${file%R*}R1.fastq.gz -I ${input}/${file%R*}R2.fastq.gz -o ${output}/${file%R*}R1.out.fq.gz -O ${output}/${file%R*}R2.out.fq.gz
+
+# alignment, mkdir 02.align_38
+bwa mem -k 32 -t 10 -M reference/hg38.fa 01.afterqc/R1.good.fq.gz 01.afterqc/R2.good.fq.gz > 02.alignment/demo.sam
+
+# sam2bam
+samtools view -bS -@ 10 02.alignment/demo.sam -o 02.alignment/demo.bam
+
+# sort bam
+samtools sort -@ 10 02.alignment/demo.bam -o 02.alignment/demo.sort.bam
+
+#dedup
+python tools/dedup.py -1 02.alignment/demo.sort.bam -o 02.alignment/demo.dedup.bam
+
+#pileup
+samtools mpileup -B -Q 20 -C 50 -q 20 -d 20000 -f reference/hg38.fa -l ctdna-pipeline/target.bed  02.alignment/demo.dedup.bam > 02.alignment/demo.dedup.mpileup
+
+# call snp and indel, mkdir 03.snp_indel
+java -jar tools/VarScan.v2.4.4.jar mpileup2snp 02.alignment/demo.dedup.mpileup --min-coverage 4 --min-reads2 2 --min-avg-qual 20 --min-var-freq 0.001 --min-freq-for-hom 90 --output-vcf 1 > 03.snp_indel/demo.snp.vcf
+java -jar tools/VarScan.v2.4.4.jar mpileup2indel 02.alignment/demo.dedup.mpileup --min-coverage 4 --min-reads2 2 --min-avg-qual 20 --min-var-freq 0.001 --min-freq-for-hom 90 --output-vcf 1 > 03.snp_indel/demo.indel.vcf
+
+# annotation snp and indel
+./tools/annovar/table_annovar.pl 03.snp_indel/demo.snp.vcf ./tools/annovar/humandb/ -buildver hg38 -out 03.snp_indel/demo.snp -remove -protocol refGene,esp6500siv2_all,clinvar_20200316 -operation g,f,f -nastring . -vcfinput
+./tools/annovar/table_annovar.pl 03.snp_indel/demo.indel.vcf ./tools/annovar/humandb/ -buildver hg38 -out 03.snp_indel/demo.indel -remove -protocol refGene,esp6500siv2_all,clinvar_20200316 -operation g,f,f -nastring . -vcfinput
+
+# Mutated Reads counting with MrBam, under python3.7
+#PYTHONPATH是Python搜索路径，默认我们import的模块都会从PYTHONPATH里面寻找。
+export PYTHONPATH=/BioII/lulab_b/taoyuhuan/ctDNA/tools/MrBam:${PYTHONPATH}
+
+python3 -m MrBam.main --indel -o 04.count/demo.indel_MrBam.txt -m 3 -q 25 --fast --cfdna 02.alignment/demo.dedup.bam --skip 1 03.snp_indel/demo.indel.hg38_multianno.txt
+ERROR:Exception: ('vcf header should be expluded', '03.snp_indel/demo.indel.hg38_multianno.txt')
+```
 
 
 
@@ -1400,6 +1698,34 @@ options(repos=structure(c(CRAN="https://cran.cnr.berkeley.edu/")))
 ### 01. Conda
 
 ```bash
+####intsall
+wget -c https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/Miniconda2-4.5.11-Linux-x86_64.sh
+bash Miniconda2-4.5.11-Linux-x86_64.sh
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/bioconda
+source ~/.bashrc
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/bioconda
+conda config --set show_channel_urls yes
+conda env list
+conda activate base
+
+## 通常出现conda no such file or dir，需要去修改~/.bashrc和~/.bash_profile，将conda的实际路径添加到~/.bashrc或~/.bash_profile中，source ~/.bashrc 和 ~/.bash_profile才能修改完成
+echo ". /home/taoyuhuan/tools/miniconda2/etc/profile.d/conda.sh" >> ~/.bashrc
+source ~/.bashrc
+conda activate base
+
+##conda环境迁移
+#进入需要迁移的环境
+conda activate {your_env}
+#环境复制
+conda env export > {your_env}.yaml
+#安装复制的环境
+conda env create -f {your_env}.yaml
+
+
 ##### channels
 # add channel
 conda config --add channels biobakery
@@ -1441,7 +1767,10 @@ pip install -r py2.txt
 #check environment path
 echo $PATH
 # check the path of software in-use
-which metaphlan.py
+which -a metaphlan.py
+# export path to bash_profile
+export PATH=$PATH:/home/taoyuhuan/tools/gatk-4.1.9.0 >> ~/.bash_profile
+source ~/.bash_profile
 ```
 
 ### 03. check system
@@ -1571,6 +1900,89 @@ gencode.gtf
      97 unitary_pseudogene
    2615 unprocessed_pseudogene
       1 vault_RNA
+```
+
+### 09. distinguish cfDNA pattern
+
+```bash
+https://github.com/OpenGene/CfdnaPattern
+git clone https://github.com/OpenGene/CfdnaPattern.git
+conda create -n py2 python=2.7
+conda install scikit-learn==0.16.1
+nohup python predict.py /BioII/lulab_b/wangsiqi/exRNA/exRNA-panel/pico/01.rawdata/*.fq.gz -m cfdna.model > pico.txt &
+nohup python predict.py /readonly/Share2/home/lulab1/exRNA/published/raw/GSE131512/fastq/*.gz -m cfdna.model > silverseq.txt &
+```
+
+### 10. check python modules
+
+```bash
+#enter python
+help()
+help> modules
+```
+
+### 11.前后台切换
+
+```bash
+#暂停前台
+Command+Z
+#将任务在后台执行，jobs 查看任务和任务号
+bg 任务号
+```
+
+### 12.检查sam、bam是否sort
+
+```bash
+# if sorted, will show SO:coordinate
+# https://www.biostars.org/p/397482/
+samtools view -H ../CRC_20201212/03.bam_sorted/wHD4.sorted.bam |grep "@HD"
+
+# queryname or coordinate, which to sort?
+# https://www.biostars.org/p/366292/
+# it does not matter whether sort by queryname or coordinate
+# https://github.com/broadinstitute/picard/issues/1119
+```
+
+### 13. Delete empty file
+
+```bash
+find . -name "*" -type f -size 0c | xargs -n 1 rm -f
+```
+
+### 14. vim E667: Fsync failed
+
+```bash
+## unknown reason, but need to copy content to a local txt, in case loss something
+```
+
+### 15.pcluster
 
 ```
+username:taoyuhuan
+password:passw0rd@taoyuhuan
+```
+
+16.libssl and libcryto not found inshared library
+
+```bash
+#进入当前环境下的lib文件夹
+cd /data/taoyuhuan/tools/miniconda3/envs/base_20210122/lib
+#为cannot find file 的文件 制作软连接
+ln -s libssl.so.1.1 libssl.so.1.0.0
+ln -s libcrypto.so.1.1 libcrypto.so.1.0.0
+```
+
+17. /libstdc++.so.6: version `CXXABI_1.3.11' not found
+
+```linux
+#https://blog.csdn.net/qingdu007/article/details/81515984
+cd path/to/libstdc++.so.6
+ln -s libstdc++.so.6.0.26 libstdc++.so.6
+```
+
+
+
+
+
+
 
