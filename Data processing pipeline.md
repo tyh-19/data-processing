@@ -1573,7 +1573,70 @@ python3 -m MrBam.main --indel -o 04.count/demo.indel_MrBam.txt -m 3 -q 25 --fast
 ERROR:Exception: ('vcf header should be expluded', '03.snp_indel/demo.indel.hg38_multianno.txt')
 ```
 
+# Blast
 
+[参考1：构建物种特异序列数据库](https://www.jianshu.com/p/d28f38db248d)
+
+[参考2：blast使用方法](https://www.jianshu.com/p/4dcb3ef2c6ef)
+
+[参考3：下载nt序列创建index或直接下载数据库](https://www.biostars.org/p/387902/)
+
+1. download NR(Non-Redundant Protein Sequence Database) fasta
+
+   ```shell
+   wget -c https://ftp.ncbi.nlm.nih.gov/blast/db/FASTA/nr.gz
+   wget -c https://ftp.ncbi.nlm.nih.gov/blast/db/FASTA/nr.gz.md5
+   
+   ```
+
+2. download taxid accession number
+
+   ```shell
+   wget -c https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/accession2taxid/prot.accession2taxid.FULL.gz
+   ```
+
+   
+
+3. Download taxdump
+
+   ```shell
+   wget ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz
+   ```
+
+   
+
+4. Install taxonkit and csvtk for taxon accession id extraction
+
+   ```shell
+   conda install taxonkit
+   conda install csvtk
+   ```
+
+   
+
+5. Extract acession id
+
+   ```shell
+   ## 11:35:54.144 [ERRO] taxonomy data not found, please download and uncompress ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz, and copy "names.dmp", "nodes.dmp", "delnodes.dmp", and "merged.dmp" to /home/taoyuhuan/.taxonkit
+   
+   ##This is the top level of the taxonomy database maintained by NCBI/GenBank. You can explore any of the taxa listed below by clicking it.
+   
+   #    Archaea 2157
+   #    Bacteria 2
+   #    Eukaryota 2759
+   #    Viruses 10239
+   #    Other
+   #    Unclassified
+   
+   taxonkit list --ids 2157 --indent "" > taxid/archaea.taxid.txt
+   taxonkit list --ids 2 --indent "" > taxid/bacteria.taxid.txt
+   taxonkit list --ids 2759 --indent "" > taxid/eukaryota.taxid.txt
+   taxonkit list --ids 10239 --indent "" > taxid/virus.taxid.txt
+   ```
+
+   
+
+6. 
 
 # Test
 
