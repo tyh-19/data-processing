@@ -1,8 +1,8 @@
 # Data-processing
-- **scripts of RNAseq data**
+- **Scripts of RNAseq data**
 
 # Multiomics
-- **scripts of multiomics RNA paper (Figure 1 - Figure 5)**
+- **Scripts of multiomics RNA paper (Figure 1 - Figure 5)**
   - Figure 1-5
     - Figure1.Sampel_Summary.R
     - Figure2.Omics_correlation_coverage.R
@@ -14,8 +14,8 @@
     - multiomics.R
 
 # RP-mRNA
-- **scripts of RP-mRNA related analysis**
-  - exploration scripts
+- **Scripts of RP-mRNA related analysis**
+  - Exploration scripts
     - selectFlows.R
 
   - Orignazied scripts
@@ -27,7 +27,7 @@
   - APA: alternative polyadenylation
   - ASE: allelic specific expression
   - Alternative promoter
-  - chimeric RNA
+  - Chimeric RNA
   - Editing
   - Insert length
   - Microbe
@@ -43,7 +43,7 @@
   - LOO_v3_yuhuan.R: Random forest leave-one-out cross validation.
   - Combination.R: combine different alteration types in model.
   - Sensitivity_at0.95speci.R: calculate sensitivity at 97% specificity
-  - `*.sh: scripts on cluster 
+  - *.sh: scripts on cluster 
 - **07.Origin**
   - Origin.R: exploration scripts
   - Signature_gene_matrix_v2.R: generate sig.gene ref from given expression matrix and plot
