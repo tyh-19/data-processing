@@ -4,22 +4,22 @@
 # Multiomics
 - scripts of multiomics RNA paper (Figure 1 - Figure 5)
   - Figure 1-5
---- Figure1.Sampel_Summary.R
---- Figure2.Omics_correlation_coverage.R
---- Figure3.Multiple alteration profiling.R
---- Figure4.Differential analysis of multiple alterations.R
---- Figure5.Alteration combination.R```
+    - Figure1.Sampel_Summary.R
+    - Figure2.Omics_correlation_coverage.R
+    - Figure3.Multiple alteration profiling.R
+    - Figure4.Differential analysis of multiple alterations.R
+    - Figure5.Alteration combination.R```
 
--- Further exploration
-- multiomics.R
+  - Further exploration
+    - multiomics.R
 
 # RP-mRNA
 - scripts of RP-mRNA related analysis
--- exploration scripts
---- selectFlows.R
+  - exploration scripts
+    - selectFlows.R
 
--- Orignazied scripts
---- RP-mRNA.R
+  - Orignazied scripts
+    - RP-mRNA.R
 
 # Useful scripts
 - 00.Genome_annotation
