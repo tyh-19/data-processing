@@ -3,7 +3,7 @@
 
 # Multiomics
 - scripts of multiomics RNA paper (Figure 1 - Figure 5)
--- Figure 1-5
+++ Figure 1-5
 --- Figure1.Sampel_Summary.R
 --- Figure2.Omics_correlation_coverage.R
 --- Figure3.Multiple alteration profiling.R
