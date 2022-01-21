@@ -1581,15 +1581,41 @@ ERROR:Exception: ('vcf header should be expluded', '03.snp_indel/demo.indel.hg38
 
 [参考3：下载nt序列创建index或直接下载数据库](https://www.biostars.org/p/387902/)
 
-1. download NR(Non-Redundant Protein Sequence Database) fasta
+[参考4：通过物种id限制比对范围](https://www.ncbi.nlm.nih.gov/books/NBK569846/)
+
+1. download NR(Non-Redundant Protein Sequence Database) and nt fasta
 
    ```shell
    wget -c https://ftp.ncbi.nlm.nih.gov/blast/db/FASTA/nr.gz
    wget -c https://ftp.ncbi.nlm.nih.gov/blast/db/FASTA/nr.gz.md5
-   
+   wget -c https://ftp.ncbi.nlm.nih.gov/blast/db/FASTA/nt.gz
+   wget -c https://ftp.ncbi.nlm.nih.gov/blast/db/FASTA/nr.gz.md5
    ```
 
-2. download taxid accession number
+2. Make database
+
+   ```shell
+   makeblastdb -in nt -blastdb_version 5 -dbtype nucl -parse_seqids -hash_index -out ../database/nt
+   
+   Building a new DB, current time: 09/06/2021 11:38:59
+   New DB name:   /data/taoyuhuan/reference/blast/database/nt
+   New DB title:  nt
+   Sequence type: Nucleotide
+   Keep MBits: T
+   Maximum file size: 1000000000B
+   FASTA-Reader: Title ends with at least 20 valid nucleotide characters.  Was the sequence accidentally put in the title line?
+   Adding sequences from FASTA; added 73005921 sequences in 12113.9 seconds.
+   ```
+
+3. Query sequence
+
+   ```shell
+   blastn -db database/nt/nt -query query/RP-mRNA_target.fasta -perc_identity 80 -out test.blasted -evalue 1e-20
+   ```
+
+   
+
+4. download taxid accession number
 
    ```shell
    wget -c https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/accession2taxid/prot.accession2taxid.FULL.gz
@@ -1597,7 +1623,7 @@ ERROR:Exception: ('vcf header should be expluded', '03.snp_indel/demo.indel.hg38
 
    
 
-3. Download taxdump
+5. Download taxdump
 
    ```shell
    wget ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz
@@ -1605,7 +1631,7 @@ ERROR:Exception: ('vcf header should be expluded', '03.snp_indel/demo.indel.hg38
 
    
 
-4. Install taxonkit and csvtk for taxon accession id extraction
+6. Install taxonkit and csvtk for taxon accession id extraction
 
    ```shell
    conda install taxonkit
@@ -1614,7 +1640,7 @@ ERROR:Exception: ('vcf header should be expluded', '03.snp_indel/demo.indel.hg38
 
    
 
-5. Extract acession id
+7. Extract acession id
 
    ```shell
    ## 11:35:54.144 [ERRO] taxonomy data not found, please download and uncompress ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz, and copy "names.dmp", "nodes.dmp", "delnodes.dmp", and "merged.dmp" to /home/taoyuhuan/.taxonkit
@@ -1628,15 +1654,33 @@ ERROR:Exception: ('vcf header should be expluded', '03.snp_indel/demo.indel.hg38
    #    Other
    #    Unclassified
    
+   # Fungi 4751
+   # Primates 9443
+   
    taxonkit list --ids 2157 --indent "" > taxid/archaea.taxid.txt
    taxonkit list --ids 2 --indent "" > taxid/bacteria.taxid.txt
    taxonkit list --ids 2759 --indent "" > taxid/eukaryota.taxid.txt
    taxonkit list --ids 10239 --indent "" > taxid/virus.taxid.txt
+   
+   #this tools in blast+ is better
+   get_species_taxids.sh -t 4751
    ```
 
    
 
-6. 
+8. get taxid and accession id
+
+   ```shell
+   cat prot.accession2taxid.FULL | csvtk -t grep -f taxid -P taxid/archaea.taxid.txt | csvtk -t cut -f accession.version > accessionid/archaea.taxid.acc.txt
+   cat prot.accession2taxid.FULL | csvtk -t grep -f taxid -P taxid/bacteria.taxid.txt | csvtk -t cut -f accession.version > accessionid/bacteria.taxid.acc.txt
+   cat prot.accession2taxid.FULL | csvtk -t grep -f taxid -P taxid/eukaryota.taxid.txt | csvtk -t cut -f accession.version > accessionid/eukaryota.taxid.acc.txt
+   cat prot.accession2taxid.FULL | csvtk -t grep -f taxid -P taxid/virus.taxid.txt | csvtk -t cut -f accession.version > accessionid/virus.taxid.acc.txt
+   
+   ```
+
+   
+
+9. 
 
 # Test
 

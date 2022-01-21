@@ -1,0 +1,3 @@
+for sample in $(ls RNA_SNP_rmEDIT | cut -d "-" -f 1,2,3); do echo ${sample};vcftools --vcf RNA_SNP_rmEDIT/${sample}-pico.rmEDIT.filtered.vcf --diff DNA_SNP_forVEP/${sample}-wgs.filtered.vcf --out individual_compare/${sample}.concordant.vcf --diff-site --chr chr1 --chr chr2 --chr chr3 --chr chr4 --chr chr5 --chr chr6 --chr chr7 --chr chr8 --chr chr9 --chr chr10 --chr chr11 --chr chr12 --chr chr13 --chr chr14 --chr chr15 --chr chr16 --chr chr17 --chr chr18 --chr chr19 --chr chr20 --chr chr21 --chr chr22;done
+
+less CRC-PKU-27.concordant.vcf.diff.sites_in_files | grep "B" | less | wc -l
