@@ -8,7 +8,7 @@
     - Figure2.Omics_correlation_coverage.R
     - Figure3.Multiple alteration profiling.R
     - Figure4.Differential analysis of multiple alterations.R
-    - Figure5.Alteration combination.R```
+    - Figure5.Alteration combination.R
 
   - Further exploration
     - multiomics.R
