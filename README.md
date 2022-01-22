@@ -119,10 +119,23 @@
   ```
   - Multiomics_paired.R, exoRBase.R, GSE*.R: deconvolution scripts
   - Cibersort.R: source code for deconvolution
-- **Plots**
-  - Plot scripts, such as Dot heatmap
 - **CI**
   - Confidence Interval calculate tools
+  - Confidence_Interval.R
+  ```
+  Usage: Confidence_Interval.R [options]
+  Options:
+	-i INPUT, --input=INPUT
+		Input file names 'miso_Insert_length_summary.txt' or other file contain a string of numbers each column, split by tab
+	-o OUTPUT, --output=OUTPUT
+		Output directory and file name
+	-b BOOTSTRAP_NUM, --bootstrap_num=BOOTSTRAP_NUM
+		Bootstrap number, default is 1000
+	-c CONFIDENCE_LEVEL, --confidence_level=CONFIDENCE_LEVEL
+		Confidence level, defaut is 0.95
+	-h, --help
+		Show this help message and exit
+  ```
 - **PCAWGplot**
   - Data prepare for PCAWG plot: detection ratio for 95% outliers(relative to healthy group) in cancer group.
   - FDR.R
@@ -140,6 +153,8 @@
   ```
 - **count_matrix_summarization**
   - Summarize TCGA counts
+- **Plots**
+  - Plot scripts, such as Dot heatmap
 - **qPCR tools**
   - A uniqform plot tool for qPCR Ct value comparison
 - **2021_simple scripts**
