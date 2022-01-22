@@ -41,12 +41,11 @@
 - **05.Correlation**
 - **06.MachineLearning**
   - LOO_v3_yuhuan.R: Random forest leave-one-out cross validation.
-  - ```usage: LOO_v3_yuhuan.R [-h] -i MATRIX -f FEATURENUMBER -p {CRC,STAD,NC} -n
+  ```
+  usage: LOO_v3_yuhuan.R [-h] -i MATRIX -f FEATURENUMBER -p {CRC,STAD,NC} -n
                        {CRC,STAD,NC} -o OUTDIR
-
-Random Forest LOO
-
-optional arguments:
+  Random Forest LOO
+  optional arguments:
   -h, --help            show this help message and exit
   -i MATRIX, --matrix MATRIX
                         input count matrix. Rows are genes. Columns are
@@ -57,7 +56,7 @@ optional arguments:
   -p {CRC,STAD,NC}, --positive {CRC,STAD,NC}
   -n {CRC,STAD,NC}, --negative {CRC,STAD,NC}
   -o OUTDIR, --outdir OUTDIR
-                        output file```
+  ```
   - Combination.R: combine different alteration types in model.
   - Sensitivity_at0.95speci.R: calculate sensitivity at 97% specificity
   - *.sh: scripts on cluster 
