@@ -32,14 +32,21 @@
 - **1.RNA_features**
   - APA: alternative polyadenylation
   - ASE: allelic specific expression
+     - ASE_AE.R: calculate AE.
   - Alternative promoter
+     - AlternativePromoter_Normalize.R: promoter activity normalize to relative promoter activity.
+     - Promoter_usage.R, Promoter_usage.sh: promoter activity to promoter usage (inactivate, minor, major).
   - Chimeric RNA
+     - update to STARfusion.
   - Editing
+     - Editing_ratio.R: summarize editing ratio.
   - Insert length
   - Microbe
   - RNA SNP
   - RNA splicing
+     - Update to rMATsturbo.
   - RNA transposon elements
+     - Add TEtranscripts in pipeline: level_3_TEtranscripts.sh, level_3_TEtranscripts_summary.sh
   - Normailzed Bigwig
 - **02.Subset_Norm**
 - **03.Differential_Expression**
@@ -125,6 +132,8 @@
   ```
   - Multiomics_paired.R, exoRBase.R, GSE*.R: deconvolution scripts
   - Cibersort.R: source code for deconvolution
+- **mRIN**
+  - mRIN.sh: mRIN to estimate RNA integrity based on RNA-seq(bam file).
 - **CI**
   - Confidence Interval calculate tools
   - Confidence_Interval.R
