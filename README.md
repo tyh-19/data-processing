@@ -23,7 +23,7 @@
 - **Scripts of RP-mRNA related analysis**
   - Exploration scripts
     - selectFlows.R
-
+    - RP-mRNA correlation.R: co-expression analysis in TCGA, platelet, EV and plasma.
   - Orignazied scripts
     - RP-mRNA.R
 
