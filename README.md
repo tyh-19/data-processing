@@ -2,16 +2,22 @@
 - **Scripts of RNAseq data**
 
 # Multiomics
-- **Scripts of multiomics RNA paper (Figure 1 - Figure 5)**
-  - Figure 1-5
+- **Multiomics analysis**
+  - 2021
     - Figure1.Sampel_Summary.R
     - Figure2.Omics_correlation_coverage.R
     - Figure3.Multiple alteration profiling.R
     - Figure4.Differential analysis of multiple alterations.R
     - Figure5.Alteration combination.R
-
-  - Further exploration
     - multiomics.R
+    
+  - 2022
+    - Final workflow and figures: Multiomics_final.R
+    - Vairant illustation: Figure3.Variants illustration_2022.R
+    - Immune related analysis: Figure4.Immune and subtype illustration_2022.R
+    - Machine learning: Bootstrap_RF.R, Late integration.R, Late_integration_afterBootstrapRF.R
+    - Complementary alteration discovery: Select_complementary_alterations.R
+    - TCGA and GTEx analysis: Cancer_up_down_RNA.R
 
 # RP-mRNA
 - **Scripts of RP-mRNA related analysis**
