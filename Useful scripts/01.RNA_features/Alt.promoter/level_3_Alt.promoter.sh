@@ -16,7 +16,7 @@ threads=16
 libtype=A
 
 echo "Start quantify Alternative promoter for ${dataset} at `date`."
-for sample in $(ls ${input} | grep 1.fastq.gz | cut -d "_" -f 1 | grep -v pico)
+for sample in $(ls ${input} | grep 1.fastq.gz | cut -d "_" -f 1)
 do
 echo "Start quantify ${sample} at `date`"
 mkdir ${output}/salmon/${sample}
@@ -28,5 +28,7 @@ done
 /data/taoyuhuan/projects/exOmics_RNA/bin/scripts/prepareTxQuantMat.py -i ${output}/salmon -o ${output}/TPM-by-tx_${dataset}.txt -t ${ref}/genome/tx-info.txt -q TPM
 
 /data/taoyuhuan/projects/exOmics_RNA/bin/scripts/getPromoterActivity.py -i ${output}/TPM-by-tx_${dataset}.txt -o ${output}/TPM-by-promoter_${dataset}.txt -p ${ref}/genome/promoter/tx2tss.10.txt
+
+Rscript /data/taoyuhuan/projects/exOmics_RNA/level_3_Alt.promoter/AlternativePromoter_Normalize.R -i ${output}/TPM-by-promoter_${dataset}.txt -o ${output}/AlternativePromoter_${dataset}_normalized.txt
 
 echo "Finish quantify Alternative promoter for ${dataset} at `date`."

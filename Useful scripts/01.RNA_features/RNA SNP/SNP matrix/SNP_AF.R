@@ -13,7 +13,7 @@ args <- parser$parse_args()
   input_dir <- args$input_dir
   output_dir <- args$output_dir
   files <- dir(input_dir)
-
+  files <- grep("rmEDIT.SNP",files,value = TRUE)
   #positive_id <- grep(positive,as.character(lapply(strsplit(files,".",fixed = 1),function(x) x[1])),value = TRUE)
   #negative_id <- grep(negative,as.character(lapply(strsplit(files,".",fixed = 1),function(x) x[1])),value = TRUE)
   
